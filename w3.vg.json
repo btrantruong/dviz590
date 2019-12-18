@@ -1,0 +1,443 @@
+{
+  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "width": 960,
+  "height": 500,
+  "autosize": "none",
+  "padding": {
+    "top": 25,
+    "left": 0,
+    "right": 0,
+    "bottom": 0
+  },
+  "signals": [
+    {
+      "name": "yearFilter",
+      "value": "2010",
+      "bind": {
+        "input": "select",
+        "options": [
+          "2010",
+          "2016",
+          "2018"
+        ]
+      }
+    },
+    {
+      "name": "totalTrade",
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "Net weight(kg.)",
+      "value": 30000000,
+      "bind": {
+        "input": "range",
+        "min": 16120555,
+        "max": 6861575235,
+        "step": 1000
+      }
+    },
+    {
+      "name": "Trade value ($)",
+      "value": 21000000,
+      "bind": {
+        "input": "range",
+        "min": 14038002,
+        "max": 1980721340,
+        "step": 1000
+      }
+    },
+    {
+      "name": "hoverCap",
+      "value": "null",
+      "on": [
+        {
+          "events": "symbol:mouseover",
+          "update": "datum"
+        },
+        {
+          "events": "symbol:mouseout",
+          "update": "null"
+        }
+      ]
+    },
+    {
+      "name": "hoverCon",
+      "value": "null",
+      "on": [
+        {
+          "events": "shape:mouseover",
+          "update": "datum"
+        },
+        {
+          "events": "shape:mouseout",
+          "update": "null"
+        }
+      ]
+    },
+    {
+      "name": "countryName",
+      "value": "U.S. Airports, 2008",
+      "update": "(hoverCon? hoverCon.name:null) || (hoverCap? hoverCap.country:null)"
+    }
+  ],
+  "data": [
+    {
+      "name": "trade",
+      "url": "https://raw.githubusercontent.com/btrantruong/vega-datasets/master/101618alltrade_sum.json",
+      "format": {
+        "type": "json",
+        "parse": "auto"
+      },
+      "transform": [
+        {
+          "type": "filter",
+          "expr": "yearFilter ? datum.year==yearFilter: datum.year == 2010"
+        }
+      ]
+    },
+    {
+      "name": "worldTrade",
+      "url": "https://raw.githubusercontent.com/btrantruong/vega-datasets/master/101618alltrade_sum.json",
+      "format": {
+        "type": "json",
+        "parse": "auto"
+      },
+      "transform": [
+        {
+          "type": "filter",
+          "expr": "datum.dest==0"
+        },
+        {
+          "type": "filter",
+          "expr": "yearFilter ? datum.year==yearFilter: datum.year == 2010"
+        }
+      ]
+    },
+    {
+      "name": "capitals",
+      "url": "https://raw.githubusercontent.com/btrantruong/vega-datasets/master/concap_final.json",
+      "format": {
+        "type": "json",
+        "parse": "auto"
+      },
+      "transform": [
+        {
+          "type": "lookup",
+          "from": "worldTrade",
+          "key": "orig",
+          "fields": [
+            "id"
+          ],
+          "as": [
+            "valueusd"
+          ]
+        },
+        {
+          "type": "filter",
+          "expr": "datum.valueusd != null"
+        },
+        {
+          "type": "geopoint",
+          "projection": "projection",
+          "fields": [
+            "capitalLongitude",
+            "capitalLatitude"
+          ]
+        },
+        {
+          "type": "filter",
+          "expr": "datum.x != null && datum.y != null"
+        }
+      ]
+    },
+    {
+      "name": "income",
+      "url": "https://raw.githubusercontent.com/btrantruong/vega-datasets/master/101618income-allfinal.json",
+      "format": {
+        "type": "json",
+        "parse": "auto"
+      },
+      "transform": [
+        {
+          "type": "filter",
+          "expr": "yearFilter ? datum.year==yearFilter: datum.year == 2010"
+        }
+      ]
+    },
+    {
+      "name": "countries",
+      "url": "data/world-110m.json",
+      "format": {
+        "type": "topojson",
+        "feature": "countries"
+      },
+      "transform": [
+        {
+          "type": "lookup",
+          "from": "income",
+          "key": "id",
+          "fields": [
+            "id"
+          ],
+          "values": [
+            "income",
+            "name"
+          ]
+        },
+        {
+          "type": "filter",
+          "expr": "datum.income != null"
+        }
+      ]
+    },
+    {
+      "name": "flows",
+      "url": "https://raw.githubusercontent.com/btrantruong/vega-datasets/master/101618alltrade_sum.json",
+      "format": {
+        "type": "json",
+        "parse": "auto"
+      },
+      "transform": [
+        {
+          "type": "filter",
+          "expr": "hoverCap && (hoverCap.id == datum.orig | hoverCap.id == datum.dest)"
+        },
+        {
+          "type": "lookup",
+          "from": "capitals",
+          "key": "id",
+          "fields": [
+            "orig",
+            "dest"
+          ],
+          "as": [
+            "source",
+            "target"
+          ]
+        },
+        {
+          "type": "filter",
+          "expr": "datum.source && datum.target"
+        },
+        {
+          "type": "linkpath",
+          "shape": "curve",
+          "orient": "vertical"
+        }
+      ]
+    },
+    {
+      "name": "flow2",
+      "url": "https://raw.githubusercontent.com/btrantruong/vega-datasets/master/101618alltrade_sum.json",
+      "format": {
+        "type": "json",
+        "parse": "auto"
+      },
+      "transform": [
+        {
+          "type": "lookup",
+          "from": "countries",
+          "key": "id",
+          "fields": [
+            "orig"
+          ],
+          "as": [
+            "geo"
+          ]
+        },
+        {
+          "type": "filter",
+          "expr": "datum.geo"
+        },
+        {
+          "type": "formula",
+          "as": "centroid",
+          "expr": "geoCentroid('projection', datum.geo)"
+        }
+      ]
+    }
+  ],
+  "projections": [
+    {
+      "name": "projection",
+      "type": "mercator"
+    }
+  ],
+  "scales": [
+    {
+      "name": "capSize",
+      "type": "linear",
+      "domain": {
+        "data": "worldTrade",
+        "field": "valueusd"
+      },
+      "range": [
+        20,
+        2000
+      ]
+    },
+    {
+      "name": "color",
+      "type": "quantize",
+      "domain": [
+        210,
+        107243
+      ],
+      "range": {
+        "scheme": "yellowgreenblue",
+        "count": 5
+      }
+    },
+    {
+      "name": "strokeWidth",
+      "type": "linear",
+      "domain": {
+        "data": "flows",
+        "field": "valueusd"
+      },
+      "range": [
+        1,
+        20
+      ]
+    }
+  ],
+  "legends": [
+    {
+      "fill": "color",
+      "orient": "bottom-left",
+      "title": "GPD Per Capita (US$)"
+    }
+  ],
+  "marks": [
+    {
+      "type": "shape",
+      "from": {
+        "data": "countries"
+      },
+      "encode": {
+        "enter": {
+          "fill": {
+            "scale": "color",
+            "field": "income"
+          },
+          "tooltip": {
+            "signal": "{title: datum.name, 'GDP per capita':round(datum.income)}"
+          }
+        },
+        "update": {
+          "stroke": {
+            "value": "steelblue"
+          },
+          "fill": {
+            "scale": "color",
+            "field": "income"
+          }
+        },
+        "hover": {
+          "fill": {
+            "value": "#fc8d62"
+          },
+          "fillOpacity": {
+            "value": 0.5
+          }
+        }
+      },
+      "transform": [
+        {
+          "type": "geoshape",
+          "projection": "projection"
+        }
+      ]
+    },
+    {
+      "type": "symbol",
+      "from": {
+        "data": "capitals"
+      },
+      "encode": {
+        "enter": {
+          "size": {
+            "scale": "capSize",
+            "field": "valueusd.valueusd"
+          },
+          "fill": {
+            "value": "#feb24c"
+          },
+          "fillOpacity": {
+            "value": 0.7
+          },
+          "stroke": {
+            "value": "#fec44f"
+          },
+          "strokeWidth": {
+            "value": 1.5
+          }
+        },
+        "update": {
+          "x": {
+            "field": "x"
+          },
+          "y": {
+            "field": "y"
+          }
+        }
+      }
+    },
+    {
+      "type": "path",
+      "interactive": false,
+      "from": {
+        "data": "flows"
+      },
+      "encode": {
+        "enter": {
+          "path": {
+            "field": "path"
+          },
+          "stroke": {
+            "value": "#fc8d62"
+          },
+          "strokeWidth": {
+            "scale": "strokeWidth",
+            "field": "valueusd"
+          },
+          "strokeOpacity": {
+            "value": 0.3
+          }
+        }
+      }
+    },
+    {
+      "type": "text",
+      "interactive": false,
+      "encode": {
+        "enter": {
+          "x": {
+            "signal": "width",
+            "offset": -5
+          },
+          "y": {
+            "value": 0
+          },
+          "fill": {
+            "value": "black"
+          },
+          "fontSize": {
+            "value": 20
+          },
+          "align": {
+            "value": "right"
+          }
+        },
+        "update": {
+          "text": {
+            "signal": "countryName"
+          }
+        }
+      }
+    }
+  ],
+  "config": {}
+}
